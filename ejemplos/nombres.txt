@@ -1,0 +1,16 @@
+6
+juan
+alberto
+raul
+veronica
+agustina
+leonela
+juan veronica
+juan agustina
+juan leonela
+alberto veronica
+alberto agustina
+alberto leonela
+raul veronica
+raul agustina
+raul leonela

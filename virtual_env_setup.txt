@@ -1,0 +1,19 @@
+## Install pip
+# Option 1: https://pip.pypa.io/en/stable/installing/
+# Option 2: https://packaging.python.org/guides/installing-using-linux-tools/
+
+## Install virtualenv
+$ sudo pip install virtualenv
+
+## Install gnuplot command line utility
+$ sudo apt-get install gnuplot
+
+## Set up virtual env
+$ virtualenv tp_final -p /usr/bin/python2.7 --no-site-packages
+
+## Use virtual env
+$ cd tp_final
+$ source bin/activate   # deactivate quits the venv session
+
+## Install dependencies
+$ pip install gnuplot-py
