@@ -52,13 +52,24 @@ def crear_grafo_aleatorio(cantN, cantA):
     G[1] = G[1][0:cantA]
     return G
 
+def exportar_grafo(G,nombre):
+	fObject = open(nombre,"w+")
+	r = str(len(G[0])) + "\n"
+	for v in G[0]:
+		r+= v.nombre + "\n"
+	for e in G[1]:
+		r+= e.a.nombre + " " + e.b.nombre + "\n"
+	r+="\n"
+	print(r)
+   	fObject.write(r)
+   	fObject.close()
 
 # ------------------------------
 #  Vectores
 # ------------------------------
 
 def resta(a,b):
-    return [a[0]-b[0],a[1]-b[1]]
+	return [a[0]-b[0],a[1]-b[1]]
 
 def suma(a,b):
     return [a[0]+b[0],a[1]+b[1]]    
@@ -324,10 +335,11 @@ def main():
 			G.agregar_vertice(X,Y) 
 
 		for event in pygame.event.get():
-			if event.type == pygame.QUIT: 
+			if event.type == pygame.QUIT:
 				sys.exit()        
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_ESCAPE:
+					exportar_grafo(G.G,"ejemplos/ultimo.txt") 
 					sys.exit()
 				if event.key == pygame.K_LEFT:
 					G.agregar_vertice(X,Y)        
