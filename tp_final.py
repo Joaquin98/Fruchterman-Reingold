@@ -9,7 +9,7 @@ import random as r
 import time
 import math
 from pygame import gfxdraw
-
+import argparse
 
 # ------------------------------
 #  Crear/Leer Grafos
@@ -53,12 +53,14 @@ def crear_grafo_aleatorio(cantN, cantA):
     return G
 
 def exportar_grafo(G,nombre):
+	D = {}
 	fObject = open(nombre,"w+")
 	r = str(len(G[0])) + "\n"
-	for v in G[0]:
-		r+= v.nombre + "\n"
+	for n,v in enumerate(G[0]):
+		D[v.nombre] = str(n+1) 
+		r+= str(n+1) + "\n"
 	for e in G[1]:
-		r+= e.a.nombre + " " + e.b.nombre + "\n"
+		r+= D[e.a.nombre] + " " + D[e.b.nombre] + "\n"
 	r+="\n"
 	print(r)
    	fObject.write(r)
@@ -194,7 +196,7 @@ class Grafo:
 				mod = 1
 			v.desp = suma(v.desp,producto((1/mod)*self.fa(mod,k),dif))
 
-	def actualizar(self,k):
+	def actualizar(self,k,x,y):
 		vertices = self.G[0]
 		self.actualizar_fuerza_repulsion(k)
 		self.actualizar_fuerza_gravedad(k)
@@ -207,6 +209,11 @@ class Grafo:
 				v.pos[0] = int(round(min(self.W,max(0,v.pos[0]))))
 				v.pos[1] = int(round(min(self.L,max(0,v.pos[1]))))
 
+		if self.pulsar and not(self.S==None):
+			self.S.pos[0] = x
+			self.S.pos[1] = y
+
+
 	def p(self):
 		self.pulsar = 0
 
@@ -214,8 +221,11 @@ class Grafo:
 	def mouse(self,x,y,flag):
 		c = [(0,0,255),(0,255,0),(255,0,0)]
 
+		f = True
+
 		for v in self.G[0]:
 			if(((x<=v.pos[0]+v.r) and (x>=v.pos[0]-v.r)) and ((y<=v.pos[1]+v.r) and (y>=v.pos[1]-v.r))):
+				f = False
 				if flag and not (self.pulsar):
 					if(self.S==None):
 						self.S = v
@@ -236,6 +246,12 @@ class Grafo:
 					v.estado = 0
 
 			v.color = c[v.estado]
+
+		if flag and f and not self.S == None:
+			self.S.estado = 0
+			self.S.color = c[self.S.estado]
+			self.S = None
+
 		if flag:
 			self.pulsar = 1
 
@@ -246,6 +262,8 @@ class Grafo:
 		while c < self.i:
 			v = self.G[0][c]
 			if(((x<=v.pos[0]+v.r) and (x>=v.pos[0]-v.r)) and ((y<=v.pos[1]+v.r) and (y>=v.pos[1]-v.r))):
+				if (not self.S == None) and v.nombre == self.S.nombre:
+					self.S = None
 				for e in self.G[1]:
 					if not(e.a.nombre == v.nombre) and not(e.b.nombre == v.nombre):
 						aristas.append(e)
@@ -290,7 +308,21 @@ def dibujar_grafo(screen,G):
 # Funcion principal 
 # ------------------------------
 
+def argumentos():
+	parser = argparse.ArgumentParser()
+
+	parser.add_argument('-i','--input',
+						help = 'Ruta del archivo con el grafo.')
+
+	parser.add_argument('-o','--output',
+						help = 'Ruta del archivo para exportar el grafo creado.')
+
+	return parser.parse_args()
+
 def main():
+
+	args = argumentos()
+
 	pygame.init()
 	ANCHO = 800
 	ALTO = 800
@@ -302,25 +334,27 @@ def main():
 
 	A = crear_grafo_aleatorio(5,10)
 	B = crear_manta(10)
-	C = leer_grafo("ejemplos/" + sys.argv[1])  
+	C = leer_grafo("ejemplos/" + args.input)  
 
 	G.cargar(C)
 
 	area = ANCHO * ALTO
 	k = 0.3*math.sqrt(area/len(G.G[0]))
 
-	pressed_left = False
+	pressed_up = False
+	pressed_down = False
 
 	while True:
 
+		X,Y = pygame.mouse.get_pos()
+
 		screen.fill((255,255,255))
 		dibujar_grafo(screen,G.G)
-		G.actualizar(k)
+		G.actualizar(k,X,Y)
 		pygame.display.flip()
 		time.sleep(0.01)
 
-		X,Y = pygame.mouse.get_pos()
-			
+		
 		l,m,r = pygame.mouse.get_pressed()
 		
 		if r:
@@ -334,21 +368,32 @@ def main():
 		if m:
 			G.agregar_vertice(X,Y) 
 
+
+
+
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				sys.exit()        
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_ESCAPE:
-					exportar_grafo(G.G,"ejemplos/ultimo.txt") 
+					exportar_grafo(G.G,"ejemplos/" + args.output) 
 					sys.exit()
-				if event.key == pygame.K_LEFT:
-					G.agregar_vertice(X,Y)        
-					pressed_left = True
+				if event.key == pygame.K_UP:    
+					pressed_up = True
+				if event.key == pygame.K_DOWN:    
+					pressed_down = True
 
 			elif event.type == pygame.KEYUP:            
-				if event.key == pygame.K_LEFT:        
-					pressed_left = False
+				if event.key == pygame.K_UP:        
+					pressed_up = False
+				if event.key == pygame.K_DOWN:        
+					pressed_down = False
 
+		if pressed_up :
+			k+=1
+
+		if pressed_down :
+			k = max(1,k-1)
 
 if __name__ == "__main__":
     main()

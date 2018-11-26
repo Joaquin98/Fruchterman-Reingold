@@ -112,15 +112,40 @@ def crear_grafo_aleatorio(cantN, cantA):
 #  Dibujar
 # ------------------------------
 
+def perspectiva(a,c,e,dir):
 
-def dibujar_nodo(screen,nodo):
-    pygame.draw.circle(screen,nodo.color,(nodo.pos[0],nodo.pos[1]), nodo.r, 0)
+    x = a[0] - c[0]
+    y = a[1] - c[1]
+    z = a[2] - c[2]
 
-def dibujar_nodo_calidad(screen,nodo):
-    pygame.gfxdraw.filled_circle(screen,nodo.pos[0],nodo.pos[1], nodo.r, nodo.color)
+    cx = math.cos(e[0])
+    cy = math.cos(e[1])
+    cz = math.cos(e[2])
 
-def dibujar_arista(screen,arista):
-    pygame.gfxdraw.line(screen,arista.a.pos[0],arista.a.pos[1],arista.b.pos[0],arista.b.pos[1],arista.color)
+    sx = math.sin(e[0])
+    sy = math.sin(e[1])
+    sz = math.sin(e[2])
+
+
+    dx = cy*(sz*y + cz*x) - sy*z
+    dy = sx*(cy*z + sy*(sz*y+cz*x)) + cx*(cz*y - sz*x)
+    dz = cx*(cy*z + sy*(sz*y+cz*x)) - sx*(cz*y - sz*x)
+
+    bx = (e[2]/dz) * dx + e[0]
+    by = (e[2]/dz) * dy + e[2]
+
+    return [int(round(bx)),int(round(by))]
+
+def dibujar_nodo(screen,nodo,camara,e,dir):
+    x = perspectiva(nodo.pos,camara,e,dir)
+    if(x[0]<800 and x[1]<800 and x[1] > 0 and x[0] > 0):
+        pygame.draw.circle(screen,nodo.color,(abs(x[0]),abs(x[1])), nodo.r, 0)
+
+
+def dibujar_arista(screen,arista,camara,e,dir):
+    x1 = perspectiva(arista.a.pos,camara,e,dir)
+    x2 = perspectiva(arista.b.pos,camara,e,dir)
+    pygame.gfxdraw.line(screen,min(800,abs(x1[0])),min(800,abs(x1[1])),min(800,abs(x2[0])),min(800,abs(x2[1])),arista.color)
 
 def dibujar_nombre(screen,nodo):
     font = pygame.font.SysFont('Comic Sans MS', 25)
@@ -128,15 +153,15 @@ def dibujar_nombre(screen,nodo):
     text = font.render(text, True, (0,0,255))
     screen.blit(text, (nodo.pos[0]+nodo.r+3, nodo.pos[1]+nodo.r+3))
 
-def dibujar_grafo(screen,G):
+def dibujar_grafo(screen,G,camara,e,dir):
     nodos = G[0]
     aristas = G[1]
     for nodo in nodos:
-        dibujar_nodo(screen,nodo)
+        dibujar_nodo(screen,nodo,camara,e,dir)
     for arista in aristas:
-        dibujar_arista(screen,arista)
-    for nodo in nodos:
-        dibujar_nombre(screen,nodo)
+        dibujar_arista(screen,arista,camara,e,dir)
+    #for nodo in nodos:
+    #    dibujar_nombre(screen,nodo)
 
 
 # ------------------------------
@@ -216,8 +241,8 @@ def iteracion_fruchterman(G,k,W,L,t):
             modMax = min(modulo(v.desp),t)
             v.pos = suma(v.pos, producto(modMax/modulo(v.desp),v.desp))
 
-            v.pos[0] = round(min(W,max(0,v.pos[0])))
-            v.pos[1] = round(min(L,max(0,v.pos[1])))
+            v.pos[0] = int(round(min(W,max(0,v.pos[0]))))
+            v.pos[1] = int(round(min(L,max(0,v.pos[1]))))
 
 
     #t-= 0.0001
@@ -263,13 +288,16 @@ def iteracion_fruchterman3d(G,k,W,L,t):
             modMax = min(modulo3d(v.desp),t)
             v.pos = suma3d(v.pos, producto3d(modMax/modulo3d(v.desp),v.desp))
 
-            v.pos[0] = round(min(W,max(0,v.pos[0])))
-            v.pos[1] = round(min(L,max(0,v.pos[1])))
-            v.pos[2] = round(min(L,max(0,v.pos[2])))
-
+            v.pos[0] = int(round(min(W,max(0,v.pos[0]))))
+            v.pos[1] = int(round(min(L,max(0,v.pos[1]))))
+            v.pos[2] = int(round(min(L,max(0,v.pos[2]))))
 
     #t-= 0.0001
     return t
+
+import math
+
+
 
 
 def main():
@@ -287,13 +315,18 @@ def main():
     k = 0.3*math.sqrt(area/len(G[0]))
 
     t = 1
-
+    pressed_left = False
+    pressed_right = False
+    pressed_up = False
+    pressed_down = False
     global X, Y, Ac, Td
-
+    camara = [ANCHO/2,ANCHO,ALTO/2]
+    e = [0,ANCHO/2,ANCHO/2]
+    dir = [ANCHO/2,ANCHO/2,ALTO/2]
     while True:
 
         screen.fill((255,255,255))
-        dibujar_grafo(screen,G)
+        dibujar_grafo(screen,G,camara,e,dir)
         if Td :
             t = iteracion_fruchterman3d(G,k,ANCHO,ALTO,t)
         else:
@@ -306,19 +339,39 @@ def main():
 
         # Posibles entradas del teclado y mouse
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_DOWN:
-                    k = max(0,k-10)
-                if event.key == pygame.K_UP:
-                    k += 10
-                if event.key == pygame.K_LEFT:
-                    Ac = (Ac+1)%2
+
+            if event.type == pygame.QUIT: 
+                sys.exit()        
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     sys.exit()
-                if event.key == pygame.K_RIGHT:
-                    Td = (Td+1)%2
-            if event.type == pygame.QUIT:
-                sys.exit()
+                if event.key == pygame.K_LEFT:        # left arrow turns left
+                    pressed_left = True
+                elif event.key == pygame.K_RIGHT:     # right arrow turns right
+                    pressed_right = True
+                elif event.key == pygame.K_UP:        # up arrow goes up
+                    pressed_up = True
+                elif event.key == pygame.K_DOWN:     # down arrow goes down
+                    pressed_down = True
+            elif event.type == pygame.KEYUP:            # check for key releases
+                if event.key == pygame.K_LEFT:        # left arrow turns left
+                    pressed_left = False
+                elif event.key == pygame.K_RIGHT:     # right arrow turns right
+                    pressed_right = False
+                elif event.key == pygame.K_UP:        # up arrow goes up
+                    pressed_up = False
+                elif event.key == pygame.K_DOWN:     # down arrow goes down
+                    pressed_down = False
+        if pressed_up :
+            camara[1]+=1
+        if pressed_right:
+            camara[0]+=1
+        if pressed_left:
+            camara[0]-=1
+        if pressed_down:
+            camara[1]-=1
+
+
 
 
 if __name__ == "__main__":
